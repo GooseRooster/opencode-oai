@@ -37,6 +37,11 @@ internal sealed class ChatCompletionService : IChatCompletionService
             _logger.LogInformation("tool-related fields dropped — unsupported in this bridge");
         }
 
+        if (request.ReasoningEffort is not null)
+        {
+            _logger.LogInformation("reasoning_effort dropped — OpenCode has no per-request knob; select a reasoning model via `model` instead");
+        }
+
         var built = PartsBuilder.Build(request.Messages);
         if (built.HasImage) _logger.LogInformation("multimodal — images detected");
         if (built.DroppedToolFields) _logger.LogInformation("tool-role messages dropped — unsupported in this bridge");
@@ -53,7 +58,7 @@ internal sealed class ChatCompletionService : IChatCompletionService
                 Parts = built.Parts,
             }, ct);
 
-            var text = ExtractText(result);
+            var (text, reasoning) = ExtractContent(result);
             var tokens = result.Info?.Tokens;
 
             return new ChatCompletionResult(
@@ -61,6 +66,7 @@ internal sealed class ChatCompletionService : IChatCompletionService
                 ProviderId: providerId,
                 ModelId: modelId,
                 Text: text,
+                Reasoning: reasoning,
                 PromptTokens: tokens?.Input ?? 0,
                 CompletionTokens: tokens?.Output ?? 0,
                 TotalTokens: tokens?.Total ?? 0);
@@ -90,17 +96,27 @@ internal sealed class ChatCompletionService : IChatCompletionService
         return (model[..slash], model[(slash + 1)..]);
     }
 
-    private static string ExtractText(MessageResponse result)
+    private static (string Text, string? Reasoning) ExtractContent(MessageResponse result)
     {
-        if (result.Parts is null || result.Parts.Count == 0) return "";
-        var segments = new List<string>();
+        if (result.Parts is null || result.Parts.Count == 0) return ("", null);
+
+        var texts = new List<string>();
+        var reasonings = new List<string>();
+
         foreach (var p in result.Parts)
         {
             if (p.Type == "text" && !string.IsNullOrWhiteSpace(p.Text))
             {
-                segments.Add(p.Text.Trim());
+                texts.Add(p.Text.Trim());
+            }
+            else if (p.Type == "reasoning" && !string.IsNullOrWhiteSpace(p.Text))
+            {
+                reasonings.Add(p.Text.Trim());
             }
         }
-        return string.Join("\n\n", segments);
+
+        var text = string.Join("\n\n", texts);
+        var reasoning = reasonings.Count > 0 ? string.Join("\n\n", reasonings) : null;
+        return (text, reasoning);
     }
 }

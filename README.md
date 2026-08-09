@@ -155,7 +155,18 @@ curl -N http://localhost:5000/v1/chat/completions \
 
 **Supported.** Text prompts, multi-modal images (`image_url` including data-URIs
 and remote URLs), streaming and non-streaming responses, provider/model routing
-via `provider/model` prefix, `Idempotency-Key` retries.
+via `provider/model` prefix, `Idempotency-Key` retries, reasoning-model output.
+
+**Reasoning / thinking.** OpenCode has no per-request reasoning-effort knob;
+reasoning is a per-model capability. To enable it, select a reasoning-capable
+model in the `model` field (e.g. `github-copilot/gpt-5-thinking`,
+`openai/o1`, `anthropic/claude-3.7-sonnet-thinking`). The bridge extracts
+`type: "reasoning"` parts from OpenCode's response and surfaces them as
+`message.reasoning_content` (buffered) or `delta.reasoning_content` (streaming),
+matching the DeepSeek / OpenRouter / LiteLLM convention that most inline-
+completion clients (Continue, Cursor, etc.) already understand. The
+`reasoning_effort` request field is accepted for client compatibility but
+silently dropped with an info log.
 
 **Not supported.** Tool / function calling — `tools`, `tool_choice`, `tool_calls`,
 and `role: "tool"` messages are silently dropped with an info log. Workspace-

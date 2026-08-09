@@ -26,6 +26,12 @@ public sealed class ChatCompletionRequest
 
     [JsonPropertyName("tool_choice")]
     public JsonElement? ToolChoice { get; set; }
+
+    // Accepted for OpenAI-client compatibility but not forwarded — OpenCode has
+    // no per-request reasoning-effort knob. Reasoning depth is selected via the
+    // model ID (e.g. `github-copilot/gpt-5-thinking`).
+    [JsonPropertyName("reasoning_effort")]
+    public JsonElement? ReasoningEffort { get; set; }
 }
 
 public sealed class ChatMessage

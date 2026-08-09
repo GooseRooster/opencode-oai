@@ -164,7 +164,7 @@
         "properties": {
           "model": {
             "type": "string",
-            "description": "Optional `provider/model` or bare model (uses default provider).",
+            "description": "Optional `provider/model` or bare model (uses default provider). To enable reasoning, pick a reasoning-enabled model id (e.g. `github-copilot/gpt-5-thinking`, `openai/o1`).",
             "example": "github-copilot/gpt-4o"
           },
           "messages": {
@@ -172,7 +172,12 @@
             "minItems": 1,
             "items": { "$ref": "#/components/schemas/ChatMessage" }
           },
-          "stream": { "type": "boolean", "default": false }
+          "stream": { "type": "boolean", "default": false },
+          "reasoning_effort": {
+            "type": "string",
+            "description": "Accepted for OpenAI-client compatibility but not forwarded — OpenCode has no per-request reasoning-effort knob. Select a reasoning-enabled model via `model` instead.",
+            "enum": ["low", "medium", "high"]
+          }
         }
       },
       "ChatMessage": {
@@ -237,7 +242,11 @@
                   "type": "object",
                   "properties": {
                     "role": { "type": "string", "const": "assistant" },
-                    "content": { "type": "string" }
+                    "content": { "type": "string" },
+                    "reasoning_content": {
+                      "type": ["string", "null"],
+                      "description": "Reasoning / thinking output from reasoning-enabled models. De-facto OpenAI-compat extension (DeepSeek / OpenRouter / LiteLLM shape) recognised by Continue, Cursor, and similar clients. Null when the model didn't produce reasoning."
+                    }
                   }
                 },
                 "finish_reason": { "type": "string", "const": "stop" }

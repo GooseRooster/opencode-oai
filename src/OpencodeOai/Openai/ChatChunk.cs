@@ -42,4 +42,8 @@ public sealed class ChatChunkDelta
 
     [JsonPropertyName("content")]
     public string? Content { get; set; }
+
+    /// <summary>Reasoning delta — see <see cref="ChatChoiceMessage.ReasoningContent"/>.</summary>
+    [JsonPropertyName("reasoning_content")]
+    public string? ReasoningContent { get; set; }
 }

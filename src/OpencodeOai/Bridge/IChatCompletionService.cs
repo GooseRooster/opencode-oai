@@ -12,6 +12,7 @@ public sealed record ChatCompletionResult(
     string ProviderId,
     string ModelId,
     string Text,
+    string? Reasoning,
     int PromptTokens,
     int CompletionTokens,
     int TotalTokens);

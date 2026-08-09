@@ -138,6 +138,15 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
             Choices = { new ChatChunkChoice { Index = 0, Delta = new ChatChunkDelta { Role = "assistant", Content = "" }, FinishReason = null } },
         }, ct);
 
+        if (!string.IsNullOrEmpty(r.Reasoning))
+        {
+            await sse.WriteChunkAsync(new ChatChunk
+            {
+                Id = cmplId, Created = created, Model = r.ModelId,
+                Choices = { new ChatChunkChoice { Index = 0, Delta = new ChatChunkDelta { ReasoningContent = r.Reasoning }, FinishReason = null } },
+            }, ct);
+        }
+
         await sse.WriteChunkAsync(new ChatChunk
         {
             Id = cmplId, Created = created, Model = r.ModelId,
@@ -164,7 +173,7 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
             new ChatChoice
             {
                 Index = 0,
-                Message = new ChatChoiceMessage { Content = r.Text },
+                Message = new ChatChoiceMessage { Content = r.Text, ReasoningContent = r.Reasoning },
                 FinishReason = "stop",
             },
         },

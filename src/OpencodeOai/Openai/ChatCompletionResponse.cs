@@ -42,6 +42,14 @@ public sealed class ChatChoiceMessage
 
     [JsonPropertyName("content")]
     public string Content { get; set; } = "";
+
+    /// <summary>
+    /// De-facto OpenAI-compat extension used by DeepSeek / OpenRouter / LiteLLM
+    /// and understood by most inline-completion clients (Continue, Cursor, etc.).
+    /// Null when the model didn't produce reasoning output.
+    /// </summary>
+    [JsonPropertyName("reasoning_content")]
+    public string? ReasoningContent { get; set; }
 }
 
 public sealed class Usage

@@ -125,22 +125,81 @@ public class ChatCompletionServiceTests
     client.Verify(c => c.DeleteSessionAsync("s1", It.IsAny<CancellationToken>()), Times.Once);
   }
 
-  [Fact]
-  public async Task Deletes_session_after_failure()
-  {
-    var (svc, client) = Build();
+    [Fact]
+    public async Task Deletes_session_after_failure()
+    {
+        var (svc, client) = Build();
 
-    client.Setup(c => c.CreateSessionAsync(It.IsAny<CreateSessionRequest>(), It.IsAny<CancellationToken>()))
-          .ReturnsAsync(new SessionDto { Id = "s1" });
-    client.Setup(c => c.SendMessageAsync("s1", It.IsAny<SendMessageRequest>(), It.IsAny<CancellationToken>()))
-          .ThrowsAsync(new OpenCodeException("upstream boom", 500));
-    client.Setup(c => c.DeleteSessionAsync("s1", It.IsAny<CancellationToken>())).ReturnsAsync(true).Verifiable();
+        client.Setup(c => c.CreateSessionAsync(It.IsAny<CreateSessionRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new SessionDto { Id = "s1" });
+        client.Setup(c => c.SendMessageAsync("s1", It.IsAny<SendMessageRequest>(), It.IsAny<CancellationToken>()))
+              .ThrowsAsync(new OpenCodeException("upstream boom", 500));
+        client.Setup(c => c.DeleteSessionAsync("s1", It.IsAny<CancellationToken>())).ReturnsAsync(true).Verifiable();
 
-    await Assert.ThrowsAsync<OpenCodeException>(() => svc.CompleteAsync(Req(null, ("user", "hi")), CancellationToken.None));
+        await Assert.ThrowsAsync<OpenCodeException>(() => svc.CompleteAsync(Req(null, ("user", "hi")), CancellationToken.None));
 
-    await WaitForBackgroundDeleteAsync(client);
-    client.Verify(c => c.DeleteSessionAsync("s1", It.IsAny<CancellationToken>()), Times.Once);
-  }
+        await WaitForBackgroundDeleteAsync(client);
+        client.Verify(c => c.DeleteSessionAsync("s1", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task Surfaces_reasoning_parts_as_separate_field()
+    {
+        var (svc, client) = Build();
+
+        client.Setup(c => c.CreateSessionAsync(It.IsAny<CreateSessionRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new SessionDto { Id = "s1" });
+        client.Setup(c => c.SendMessageAsync("s1", It.IsAny<SendMessageRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new MessageResponse
+              {
+                  Parts = new()
+                  {
+                      new PartDto { Type = "reasoning", Text = "Let me think about this step by step." },
+                      new PartDto { Type = "text",      Text = "The answer is 42." },
+                  },
+              });
+        client.Setup(c => c.DeleteSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var result = await svc.CompleteAsync(Req(null, ("user", "hi")), CancellationToken.None);
+
+        result.Text.Should().Be("The answer is 42.");
+        result.Reasoning.Should().Be("Let me think about this step by step.");
+    }
+
+    [Fact]
+    public async Task Reasoning_is_null_when_no_reasoning_parts()
+    {
+        var (svc, client) = Build();
+
+        client.Setup(c => c.CreateSessionAsync(It.IsAny<CreateSessionRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new SessionDto { Id = "s1" });
+        client.Setup(c => c.SendMessageAsync("s1", It.IsAny<SendMessageRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new MessageResponse { Parts = new() { new PartDto { Type = "text", Text = "hi" } } });
+        client.Setup(c => c.DeleteSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var result = await svc.CompleteAsync(Req(null, ("user", "hi")), CancellationToken.None);
+
+        result.Reasoning.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Silently_drops_reasoning_effort_field()
+    {
+        var (svc, client) = Build();
+
+        client.Setup(c => c.CreateSessionAsync(It.IsAny<CreateSessionRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new SessionDto { Id = "s1" });
+        client.Setup(c => c.SendMessageAsync("s1", It.IsAny<SendMessageRequest>(), It.IsAny<CancellationToken>()))
+              .ReturnsAsync(new MessageResponse { Parts = new() { new PartDto { Type = "text", Text = "ok" } } });
+        client.Setup(c => c.DeleteSessionAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
+
+        var request = Req(null, ("user", "hi"));
+        request.ReasoningEffort = JsonSerializer.SerializeToElement("high");
+
+        var result = await svc.CompleteAsync(request, CancellationToken.None);
+
+        result.Text.Should().Be("ok");
+    }
 
   private static async Task WaitForBackgroundDeleteAsync(Mock<IOpenCodeClient> client)
   {

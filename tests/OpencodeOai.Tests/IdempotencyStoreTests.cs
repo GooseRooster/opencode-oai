@@ -72,5 +72,5 @@ public class IdempotencyStoreTests
     }
 
     private static ChatCompletionResult Sample(int i) =>
-        new($"s{i}", "p", "m", "text", 0, 0, 0);
+        new($"s{i}", "p", "m", "text", null, 0, 0, 0);
 }
