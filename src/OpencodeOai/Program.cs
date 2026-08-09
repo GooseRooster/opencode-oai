@@ -27,6 +27,18 @@ builder.Services
 var bridge = builder.Configuration.GetSection(BridgeOptions.SectionName).Get<BridgeOptions>() ?? new BridgeOptions();
 builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 
+builder.Logging.ClearProviders();
+builder.Logging.AddJsonConsole(o =>
+{
+    o.IncludeScopes = false;
+    o.TimestampFormat = "O";
+    o.UseUtcTimestamp = true;
+});
+if (bridge.DevContainer)
+{
+    builder.Logging.AddProvider(new OpencodeOai.Logging.DevContainerFileLoggerProvider());
+}
+
 builder.Services.AddOpenCodeClient();
 builder.Services.AddSingleton<OpencodeOai.Bridge.IChatCompletionService, OpencodeOai.Bridge.ChatCompletionService>();
 builder.Services.AddSingleton<OpencodeOai.Bridge.IIdempotencyStore, OpencodeOai.Bridge.MemoryIdempotencyStore>();
