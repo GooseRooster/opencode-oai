@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication;
 using OpencodeOai;
+using OpencodeOai.Auth;
 using OpencodeOai.Configuration;
 using OpencodeOai.Endpoints;
 using OpencodeOai.Options;
@@ -22,7 +24,28 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 
 builder.Services.AddOpenCodeClient();
 
+builder.Services
+    .AddAuthentication(ApiKeyAuthHandler.SchemeName)
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>(ApiKeyAuthHandler.SchemeName, _ => { });
+
+builder.Services.AddAuthorization(o =>
+{
+    o.AddPolicy(ApiKeyAuthHandler.SchemeName, p => p.RequireAuthenticatedUser());
+});
+
 var app = builder.Build();
+
+app.Use(async (ctx, next) =>
+{
+    await next();
+    if (ctx.Response.StatusCode == StatusCodes.Status401Unauthorized && !ctx.Response.HasStarted)
+    {
+        await ApiKeyChallenge.WriteAsync(ctx);
+    }
+});
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 EndpointRegistry.MapAll(app);
 
