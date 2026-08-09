@@ -2,7 +2,7 @@
 // a trust-once dev HTTPS cert. 
 // NOTE: the mcr dotnet/sdk image's uid-1000 user is 'ubuntu' (not 'vscode').
 {
-  "name": "opencode-oai",
+  "name": "opencode-oai-dev",
   "build": {
     "dockerfile": "Dockerfile"
   },
