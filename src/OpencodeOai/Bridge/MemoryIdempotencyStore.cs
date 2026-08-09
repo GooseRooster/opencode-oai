@@ -29,11 +29,11 @@ internal sealed class MemoryIdempotencyStore : IIdempotencyStore
             return new Entry(task, DateTimeOffset.UtcNow.Add(_ttl));
         });
 
-        // If the cached task faulted, evict so a retry can rebuild.
+        // Don't cache failures — evict so the next caller retries fresh,
+        // but let this caller observe the original exception.
         if (entry.Task.IsFaulted || entry.Task.IsCanceled)
         {
             _entries.TryRemove(key, out _);
-            return GetOrAddAsync(key, factory, ct);
         }
 
         return entry.Task;
