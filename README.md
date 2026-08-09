@@ -158,5 +158,9 @@ dotnet publish src/OpencodeOai -c Release -r linux-x64
 | Method | Path                    | Auth | Notes                              |
 | ------ | ----------------------- | ---- | ---------------------------------- |
 | GET    | `/health`               | none | Bridge + upstream reachability     |
+| GET    | `/openapi.json`         | none | OpenAPI 3.1 spec for REST clients  |
 | GET    | `/v1/models`            | key  | Live provider list w/ fallback     |
 | POST   | `/v1/chat/completions`  | key  | Streaming and non-streaming        |
+
+A `.http` file with ready-to-fire requests lives at
+[`src/OpencodeOai/OpencodeOai.http`](src/OpencodeOai/OpencodeOai.http).
