@@ -6,13 +6,15 @@ running [OpenCode](https://opencode.ai) server.
 
 Designed for **inline completion / lightweight chat** in editor plugins. Tool
 calling and workspace-scoped filesystem operations are intentionally out of
-scope — keeping the surface small avoids host↔container path resolution
+scope. Keeping the surface small avoids host↔container path resolution
 headaches when the OpenCode server runs on the host and the editor runs in a
 devcontainer.
 
 ## Attribution
 
-_Add attribution here._
+Inspired by [opencode-bridge](https://github.com/crazyboy24/opencode-bridge), rewritten in .NET
+
+This project is AI-assisted. All contributions are owned by maintainers.
 
 ## Features
 
@@ -176,3 +178,11 @@ dotnet publish src/OpencodeOai -c Release -r linux-x64
 
 A `.http` file with ready-to-fire requests lives at
 [`src/OpencodeOai/OpencodeOai.http`](src/OpencodeOai/OpencodeOai.http).
+
+## Contributing
+Contributions welcome. Feel free to make pull requests with improvements. Please try and keep pull requests focused.
+
+AI assisted PRs are of course welcome but you need to be able to explain and defend the code.
+
+## License
+MIT

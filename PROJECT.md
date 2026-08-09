@@ -52,7 +52,7 @@ awareness of OpenCode itself.
 ```
 ┌───────────┐   OpenAI    ┌─────────────────┐   OpenCode REST   ┌──────────────┐
 │  Editor   │ ──HTTP─────▶│  opencode-oai   │ ──HTTP──────────▶ │  OpenCode    │
-│  plugin   │ ◀──SSE──────│  (this repo)    │ ◀──JSON──────────  │  server      │
+│  plugin   │ ◀──SSE──────│  (this repo)    │ ◀──JSON────────── │  server      │
 └───────────┘             └─────────────────┘                   └──────────────┘
                               ▲       ▲
                               │       └── SessionCleanupService (backstop)
@@ -104,8 +104,7 @@ retry cleanly. 24h TTL by default.
 `ApiKeyAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>`.
 Reads `Authorization: Bearer <key>` (or the raw header) and compares against
 `OPENCODE_PROXY_API_KEY` via `CryptographicOperations.FixedTimeEquals`. If
-the env var is empty, all requests succeed as `anonymous` — parity with the
-npm bridge, but a WARN is logged at startup.
+the env var is empty, all requests succeed as `anonymous` —  but a WARN is logged at startup.
 
 Auth failures are rewritten to an OpenAI-shaped
 `{ "error": { "message": "Unauthorized", "type": "auth_error" } }` body by a

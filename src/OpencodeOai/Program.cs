@@ -7,10 +7,7 @@ using OpencodeOai.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
-builder.Services.ConfigureHttpJsonOptions(o =>
-{
-    o.SerializerOptions.TypeInfoResolverChain.Insert(0, OpencodeOai.Openai.OpenaiJsonContext.Default);
-});
+builder.Services.ConfigureHttpJsonOptions(o => o.SerializerOptions.TypeInfoResolverChain.Insert(0, OpencodeOai.Openai.OpenaiJsonContext.Default));
 
 EnvConfiguration.Apply(builder.Configuration);
 
@@ -30,13 +27,13 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(o =>
 {
-    o.IncludeScopes = false;
-    o.TimestampFormat = "O";
-    o.UseUtcTimestamp = true;
+  o.IncludeScopes = false;
+  o.TimestampFormat = "O";
+  o.UseUtcTimestamp = true;
 });
 if (bridge.DevContainer)
 {
-    builder.Logging.AddProvider(new OpencodeOai.Logging.DevContainerFileLoggerProvider());
+  builder.Logging.AddProvider(new OpencodeOai.Logging.DevContainerFileLoggerProvider());
 }
 
 builder.Services.AddOpenCodeClient();
@@ -48,26 +45,24 @@ builder.Services
     .AddAuthentication(ApiKeyAuthHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthHandler>(ApiKeyAuthHandler.SchemeName, _ => { });
 
-builder.Services.AddAuthorization(o =>
-{
-    o.AddPolicy(ApiKeyAuthHandler.SchemeName, p => p.RequireAuthenticatedUser());
-});
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy(ApiKeyAuthHandler.SchemeName, p => p.RequireAuthenticatedUser());
 
 var app = builder.Build();
 
 var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
 if (string.IsNullOrEmpty(bridge.ApiKey))
 {
-    startupLogger.LogWarning("OPENCODE_OAI_API_KEY is not set; the bridge is accepting anonymous requests");
+  startupLogger.LogWarning("OPENCODE_OAI_API_KEY is not set; the bridge is accepting anonymous requests");
 }
 
 app.Use(async (ctx, next) =>
 {
-    await next();
-    if (ctx.Response.StatusCode == StatusCodes.Status401Unauthorized && !ctx.Response.HasStarted)
-    {
-        await ApiKeyChallenge.WriteAsync(ctx);
-    }
+  await next();
+  if (ctx.Response.StatusCode == StatusCodes.Status401Unauthorized && !ctx.Response.HasStarted)
+  {
+    await ApiKeyChallenge.WriteAsync(ctx);
+  }
 });
 
 app.UseAuthentication();
