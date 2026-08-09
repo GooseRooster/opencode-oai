@@ -1,3 +1,4 @@
+using OpencodeOai;
 using OpencodeOai.Configuration;
 using OpencodeOai.Options;
 
@@ -17,6 +18,8 @@ builder.Services
 
 var bridge = builder.Configuration.GetSection(BridgeOptions.SectionName).Get<BridgeOptions>() ?? new BridgeOptions();
 builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
+
+builder.Services.AddOpenCodeClient();
 
 var app = builder.Build();
 
