@@ -135,4 +135,18 @@ public class EndpointsIntegrationTests
         var text = await res.Content.ReadAsStringAsync();
         text.Should().Contain("invalid_request_error");
     }
+
+    [Fact]
+    public async Task OpenApi_spec_is_served()
+    {
+        using var factory = new BridgeFactory { ApiKey = null };
+
+        var res = await factory.CreateClient().GetAsync("/openapi.json");
+        res.StatusCode.Should().Be(HttpStatusCode.OK);
+        res.Content.Headers.ContentType!.MediaType.Should().Be("application/json");
+
+        var doc = JsonDocument.Parse(await res.Content.ReadAsStringAsync());
+        doc.RootElement.GetProperty("openapi").GetString().Should().StartWith("3.");
+        doc.RootElement.GetProperty("paths").TryGetProperty("/v1/chat/completions", out _).Should().BeTrue();
+    }
 }

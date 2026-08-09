@@ -1,8 +1,53 @@
-GET http://localhost:5000/health
+@host = http://localhost:5000
+@apikey = change-me
+
+### Health (no auth)
+GET {{host}}/health
 Accept: application/json
 
-###
-
-GET http://localhost:5000/v1/models
-Authorization: Bearer changeme
+### OpenAPI spec (no auth)
+GET {{host}}/openapi.json
 Accept: application/json
+
+### List models
+GET {{host}}/v1/models
+Authorization: Bearer {{apikey}}
+Accept: application/json
+
+### Chat completion (non-streaming)
+POST {{host}}/v1/chat/completions
+Authorization: Bearer {{apikey}}
+Content-Type: application/json
+
+{
+  "model": "github-copilot/gpt-4o",
+  "messages": [
+    { "role": "user", "content": "Write one line of C# that reverses a string." }
+  ]
+}
+
+### Chat completion (streaming, SSE)
+POST {{host}}/v1/chat/completions
+Authorization: Bearer {{apikey}}
+Content-Type: application/json
+
+{
+  "model": "github-copilot/gpt-4o",
+  "stream": true,
+  "messages": [
+    { "role": "user", "content": "Complete this: for (var i = 0; i <" }
+  ]
+}
+
+### Chat completion with idempotency key
+POST {{host}}/v1/chat/completions
+Authorization: Bearer {{apikey}}
+Content-Type: application/json
+Idempotency-Key: demo-key-1
+
+{
+  "model": "github-copilot/gpt-4o",
+  "messages": [
+    { "role": "user", "content": "Say hi." }
+  ]
+}

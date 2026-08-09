@@ -10,6 +10,7 @@ internal static class EndpointRegistry
         new HealthEndpoint(),
         new ModelsEndpoint(),
         new ChatCompletionsEndpoint(),
+        new OpenApiEndpoint(),
     ];
 
     public static void MapAll(IEndpointRouteBuilder app)
