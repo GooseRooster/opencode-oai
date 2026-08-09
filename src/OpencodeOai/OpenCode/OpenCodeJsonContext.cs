@@ -14,7 +14,6 @@ namespace OpencodeOai;
 [JsonSerializable(typeof(MessageResponse))]
 [JsonSerializable(typeof(ProvidersResponse))]
 [JsonSerializable(typeof(PartDto))]
-[JsonSerializable(typeof(ImageSourceDto))]
 [JsonSerializable(typeof(ProviderDto))]
 [JsonSerializable(typeof(ModelRef))]
 internal partial class OpenCodeJsonContext : JsonSerializerContext

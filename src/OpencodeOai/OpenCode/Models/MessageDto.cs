@@ -7,6 +7,13 @@ public sealed class SendMessageRequest
     [JsonPropertyName("model")]
     public ModelRef Model { get; set; } = new();
 
+    /// <summary>
+    /// System prompt — OpenCode expects the system message on this top-level
+    /// field, not as a "system" part inside <see cref="Parts"/>.
+    /// </summary>
+    [JsonPropertyName("system")]
+    public string? System { get; set; }
+
     [JsonPropertyName("parts")]
     public List<PartDto> Parts { get; set; } = new();
 }

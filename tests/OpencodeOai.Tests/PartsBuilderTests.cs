@@ -33,10 +33,11 @@ public class PartsBuilderTests
         result.Parts.Should().HaveCount(1);
         result.Parts[0].Type.Should().Be("text");
         result.Parts[0].Text.Should().Contain("[USER]").And.Contain("hello");
+        result.System.Should().BeNull();
     }
 
     [Fact]
-    public void Extracts_system_message_as_system_part()
+    public void Extracts_system_message_onto_system_field_not_as_part()
     {
         var messages = new List<ChatMessage>
         {
@@ -46,12 +47,28 @@ public class PartsBuilderTests
 
         var result = PartsBuilder.Build(messages);
 
-        result.Parts.Should().Contain(p => p.Type == "system" && p.Text == "You are a helpful assistant.");
-        result.Parts.Should().NotContain(p => p.Text != null && p.Text.Contains("[SYSTEM]"));
+        result.System.Should().Be("You are a helpful assistant.");
+        result.Parts.Should().NotContain(p => p.Type == "system");
+        result.Parts.Should().OnlyContain(p => p.Type == "text" || p.Type == "file");
     }
 
     [Fact]
-    public void Handles_multimodal_data_uri_image()
+    public void Combines_multiple_system_and_developer_messages()
+    {
+        var messages = new List<ChatMessage>
+        {
+            Msg("system", "You are helpful."),
+            Msg("developer", "Reply in JSON."),
+            Msg("user", "hi"),
+        };
+
+        var result = PartsBuilder.Build(messages);
+
+        result.System.Should().Be("You are helpful.\nReply in JSON.");
+    }
+
+    [Fact]
+    public void Emits_file_part_for_data_uri_image()
     {
         var messages = new List<ChatMessage>
         {
@@ -65,14 +82,13 @@ public class PartsBuilderTests
         var result = PartsBuilder.Build(messages);
 
         result.HasImage.Should().BeTrue();
-        var image = result.Parts.Single(p => p.Type == "image");
-        image.Source!.Type.Should().Be("base64");
-        image.Source.MediaType.Should().Be("image/png");
-        image.Source.Data.Should().Be("AAAA");
+        var image = result.Parts.Single(p => p.Type == "file");
+        image.Mime.Should().Be("image/png");
+        image.Url.Should().Be("data:image/png;base64,AAAA");
     }
 
     [Fact]
-    public void Handles_multimodal_remote_url_image()
+    public void Emits_file_part_for_remote_url_image()
     {
         var messages = new List<ChatMessage>
         {
@@ -84,9 +100,9 @@ public class PartsBuilderTests
 
         var result = PartsBuilder.Build(messages);
 
-        var image = result.Parts.Single(p => p.Type == "image");
-        image.Source!.Type.Should().Be("url");
-        image.Source.Url.Should().Be("https://example.com/cat.png");
+        var image = result.Parts.Single(p => p.Type == "file");
+        image.Mime.Should().Be("image/png");
+        image.Url.Should().Be("https://example.com/cat.png");
     }
 
     [Fact]
@@ -105,16 +121,17 @@ public class PartsBuilderTests
     }
 
     [Fact]
-    public void Never_emits_tool_parts()
+    public void Only_emits_text_or_file_parts()
     {
         var messages = new List<ChatMessage>
         {
+            Msg("system", "sys"),
             Msg("user", "hello"),
             Msg("assistant", "hi there"),
         };
 
         var result = PartsBuilder.Build(messages);
 
-        result.Parts.Should().OnlyContain(p => p.Type == "text" || p.Type == "system" || p.Type == "image");
+        result.Parts.Should().OnlyContain(p => p.Type == "text" || p.Type == "file");
     }
 }

@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 using OpencodeOai.OpenCode.Models;
 using OpencodeOai.Openai;
@@ -5,36 +6,35 @@ using OpencodeOai.Openai;
 namespace OpencodeOai.Bridge;
 
 /// <summary>
-/// Converts OpenAI-shaped messages into an OpenCode <see cref="PartDto"/> list.
-/// Text and image parts only. Tool-related fields are silently dropped
-/// (this bridge does not support tool calling — see README).
+/// Converts OpenAI-shaped messages into an OpenCode <see cref="PartDto"/> list
+/// plus a system prompt string. OpenCode expects the system prompt on the
+/// request's top-level <c>system</c> field, not as a part.
+///
+/// Tool-related fields are silently dropped (this bridge does not support tool
+/// calling — see README).
 /// </summary>
 internal static class PartsBuilder
 {
     public static BuildResult Build(IReadOnlyList<ChatMessage> messages)
     {
         var parts = new List<PartDto>();
+        var systemBuf = new StringBuilder();
         var hasImage = false;
         var droppedTool = false;
 
-        // System message first, as a dedicated "system" part.
-        for (var i = 0; i < messages.Count; i++)
+        // Collect system + developer messages into a single system prompt.
+        foreach (var m in messages)
         {
-            var m = messages[i];
-            if (m.Role == "system")
-            {
-                var text = ExtractText(m.Content);
-                if (!string.IsNullOrEmpty(text))
-                {
-                    parts.Add(new PartDto { Type = "system", Text = text });
-                }
-                break;
-            }
+            if (m.Role != "system" && m.Role != "developer") continue;
+            var text = ExtractText(m.Content);
+            if (string.IsNullOrEmpty(text)) continue;
+            if (systemBuf.Length > 0) systemBuf.Append('\n');
+            systemBuf.Append(text);
         }
 
         foreach (var m in messages)
         {
-            if (m.Role == "system") continue;
+            if (m.Role == "system" || m.Role == "developer") continue;
 
             if (m.Role == "tool")
             {
@@ -77,35 +77,41 @@ internal static class PartsBuilder
                         var url = urlElem.GetString() ?? "";
                         hasImage = true;
 
-                        if (url.StartsWith("data:", StringComparison.Ordinal))
+                        // OpenCode's FilePartInput is flat: { type: "file", mime, url }.
+                        // Data URIs are passed through as-is; OpenCode parses them upstream.
+                        var mime = GuessMime(url);
+                        parts.Add(new PartDto
                         {
-                            var comma = url.IndexOf(',', StringComparison.Ordinal);
-                            if (comma <= 0) continue;
-                            var meta = url[..comma];
-                            var data = url[(comma + 1)..];
-                            var mediaType = meta.Replace("data:", "", StringComparison.Ordinal)
-                                                .Replace(";base64", "", StringComparison.Ordinal);
-                            parts.Add(new PartDto
-                            {
-                                Type = "image",
-                                Source = new ImageSourceDto { Type = "base64", MediaType = mediaType, Data = data },
-                            });
-                        }
-                        else
-                        {
-                            parts.Add(new PartDto
-                            {
-                                Type = "image",
-                                Source = new ImageSourceDto { Type = "url", Url = url },
-                            });
-                        }
+                            Type = "file",
+                            Mime = mime,
+                            Url = url,
+                        });
                     }
                     // audio / file / tool-anything → silently skipped
                 }
             }
         }
 
-        return new BuildResult(parts, hasImage, droppedTool);
+        var system = systemBuf.Length > 0 ? systemBuf.ToString() : null;
+        return new BuildResult(parts, system, hasImage, droppedTool);
+    }
+
+    private static string GuessMime(string url)
+    {
+        if (url.StartsWith("data:", StringComparison.Ordinal))
+        {
+            var semi = url.IndexOf(';', StringComparison.Ordinal);
+            var comma = url.IndexOf(',', StringComparison.Ordinal);
+            var end = semi > 0 ? semi : comma;
+            if (end > 5) return url[5..end];
+        }
+        // Best-effort suffix sniff for remote URLs.
+        var lower = url.ToLowerInvariant();
+        if (lower.EndsWith(".png",  StringComparison.Ordinal)) return "image/png";
+        if (lower.EndsWith(".jpg",  StringComparison.Ordinal) || lower.EndsWith(".jpeg", StringComparison.Ordinal)) return "image/jpeg";
+        if (lower.EndsWith(".gif",  StringComparison.Ordinal)) return "image/gif";
+        if (lower.EndsWith(".webp", StringComparison.Ordinal)) return "image/webp";
+        return "image/*";
     }
 
     private static string ExtractText(JsonElement? content)
@@ -115,7 +121,7 @@ internal static class PartsBuilder
         if (c.ValueKind == JsonValueKind.String) return c.GetString() ?? "";
         if (c.ValueKind == JsonValueKind.Array)
         {
-            var buf = new System.Text.StringBuilder();
+            var buf = new StringBuilder();
             foreach (var item in c.EnumerateArray())
             {
                 if (item.ValueKind == JsonValueKind.Object && item.TryGetProperty("text", out var t))
@@ -130,4 +136,8 @@ internal static class PartsBuilder
     }
 }
 
-internal readonly record struct BuildResult(List<PartDto> Parts, bool HasImage, bool DroppedToolFields);
+internal readonly record struct BuildResult(
+    List<PartDto> Parts,
+    string? System,
+    bool HasImage,
+    bool DroppedToolFields);

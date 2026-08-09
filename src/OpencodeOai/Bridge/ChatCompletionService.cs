@@ -55,6 +55,7 @@ internal sealed class ChatCompletionService : IChatCompletionService
             var result = await _client.SendMessageAsync(sessionId, new SendMessageRequest
             {
                 Model = new ModelRef { ProviderId = providerId, ModelId = modelId },
+                System = built.System,
                 Parts = built.Parts,
             }, ct);
 
