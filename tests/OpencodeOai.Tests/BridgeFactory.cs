@@ -1,15 +1,14 @@
-using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using OpencodeOai.OpenCode;
 using OpencodeOai.OpenCode.Models;
-using Xunit;
+using OpencodeOai.Options;
 
 namespace OpencodeOai.Tests;
 
-/// <summary>Shared factory that stubs the OpenCode client and lets tests set an API key.</summary>
+/// <summary>Test host with a stubbed IOpenCodeClient and overridable BridgeOptions.</summary>
 public sealed class BridgeFactory : WebApplicationFactory<Program>
 {
     public Mock<IOpenCodeClient> ClientMock { get; } = new(MockBehavior.Loose);
@@ -17,20 +16,19 @@ public sealed class BridgeFactory : WebApplicationFactory<Program>
 
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
-        if (ApiKey is not null)
-        {
-            Environment.SetEnvironmentVariable("OPENCODE_PROXY_API_KEY", ApiKey);
-        }
-        else
-        {
-            Environment.SetEnvironmentVariable("OPENCODE_PROXY_API_KEY", null);
-        }
-
         builder.ConfigureTestServices(services =>
         {
             var descriptor = services.Single(d => d.ServiceType == typeof(IOpenCodeClient));
             services.Remove(descriptor);
             services.AddSingleton(ClientMock.Object);
+
+            services.Configure<BridgeOptions>(o =>
+            {
+                o.ApiKey = ApiKey;
+                o.DefaultModel = "gpt-4o";
+                o.DefaultProviderId = "github-copilot";
+                o.HeartbeatMs = 60_000;
+            });
         });
     }
 
