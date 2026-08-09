@@ -1,3 +1,4 @@
 <Solution>
-  <Project Path="opencode-oai.csproj" />
+  <Project Path="src/OpencodeOai/OpencodeOai.csproj" />
+  <Project Path="tests/OpencodeOai.Tests/OpencodeOai.Tests.csproj" />
 </Solution>

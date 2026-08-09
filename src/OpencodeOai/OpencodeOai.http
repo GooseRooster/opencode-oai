@@ -1,0 +1,8 @@
+GET http://localhost:5000/health
+Accept: application/json
+
+###
+
+GET http://localhost:5000/v1/models
+Authorization: Bearer changeme
+Accept: application/json
