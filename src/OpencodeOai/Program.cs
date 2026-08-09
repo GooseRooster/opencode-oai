@@ -27,9 +27,13 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 builder.Logging.ClearProviders();
 builder.Logging.AddJsonConsole(o =>
 {
-  o.IncludeScopes = false;
-  o.TimestampFormat = "O";
-  o.UseUtcTimestamp = true;
+    o.IncludeScopes = false;
+    o.TimestampFormat = "O";
+    o.UseUtcTimestamp = true;
+    o.JsonWriterOptions = new System.Text.Json.JsonWriterOptions
+    {
+        Indented = true,
+    };
 });
 if (bridge.DevContainer)
 {

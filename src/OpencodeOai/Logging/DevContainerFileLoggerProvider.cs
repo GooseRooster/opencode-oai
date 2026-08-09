@@ -73,7 +73,7 @@ internal sealed class DevContainerFileLoggerProvider : ILoggerProvider
             var message = formatter(state, exception);
 
             using var buf = new MemoryStream();
-            using (var w = new Utf8JsonWriter(buf))
+            using (var w = new Utf8JsonWriter(buf, new JsonWriterOptions { Indented = true }))
             {
                 w.WriteStartObject();
                 w.WriteString("t", DateTimeOffset.UtcNow.ToString("O"));
