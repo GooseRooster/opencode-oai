@@ -1,4 +1,5 @@
 @host = http://localhost:5000
+# Set OPENCODE_OAI_API_KEY on the bridge and match it here.
 @apikey = change-me
 
 ### Health (no auth)

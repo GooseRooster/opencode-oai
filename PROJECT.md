@@ -135,10 +135,14 @@ tiny middleware.
 
 ## Env vars
 
-Names match the npm bridge (`opencode-bridge`) exactly for drop-in
-replacement. Full list in the README. `EnvConfiguration.cs` is the single
-place that maps these flat names onto the `Bridge` / `OpenCode` config
-sections consumed by the options pattern.
+Two prefixes, hard rule:
+
+- `OPENCODE_OAI_*` — bridge-side settings.
+- `OPENCODE_*`     — upstream connection settings.
+
+Full list lives in the README. `EnvConfiguration.cs` is the single place that
+maps these names onto the `Bridge` / `OpenCode` config sections consumed by the
+options pattern.
 
 ## Testing
 

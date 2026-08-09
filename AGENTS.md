@@ -41,9 +41,9 @@ aren't installed. Rather than debug that per-machine, run every build and test
 command inside this repo's devcontainer, which pins the exact SDK image and
 has the native prerequisites:
 
+If the CLI is unavailable, attempt use of host tooling. If neither are available, stop and ask the user how to proceed.
+
 ```sh
-# From the host, one-time:
-npm install -g @devcontainers/cli
 
 # Bring the container up (idempotent):
 devcontainer up --workspace-folder .
@@ -94,7 +94,15 @@ docker compose up --build
 - **Buffered streaming.** The bridge streams by awaiting the full upstream
   response and emitting one delta. This is intentional parity behaviour; real
   per-token streaming via OpenCode's `/event` endpoint is a future opt-in mode.
-- **Duplicated env var names in `EnvConfiguration`.** The npm bridge's env var
-  names are preserved verbatim for drop-in compatibility. Don't rename them.
 - **Fire-and-forget session delete.** The `SessionCleanupService` exists as a
   backstop; do not synchronise on the per-request delete.
+
+## Env vars
+
+Two prefixes, hard rule — no legacy aliases, no fallbacks:
+
+- `OPENCODE_OAI_*` — bridge-side settings.
+- `OPENCODE_*`     — upstream connection settings (talking to the OpenCode server).
+
+All env → config mapping lives in `Configuration/EnvConfiguration.cs`. Add new
+vars there and mirror them in the README table.

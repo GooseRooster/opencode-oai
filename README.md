@@ -41,7 +41,7 @@ via `host.docker.internal:4096` (mapped through `host-gateway`).
 docker build -t opencode-oai .
 docker run --rm -p 5000:5000 \
   -e OPENCODE_URL=http://host.docker.internal:4096 \
-  -e OPENCODE_PROXY_API_KEY=change-me \
+  -e OPENCODE_OAI_API_KEY=change-me \
   --add-host=host.docker.internal:host-gateway \
   opencode-oai
 ```
@@ -56,30 +56,42 @@ dotnet run --project src/OpencodeOai
 
 All configuration is read from environment variables.
 
-| Env                         | Default                  | Purpose                                             |
-| --------------------------- | ------------------------ | --------------------------------------------------- |
-| `PORT`                      | `5000`                   | Kestrel bind port                                   |
-| `OPENCODE_URL`              | `http://localhost:4096`  | Upstream OpenCode server                            |
-| `OPENCODE_SERVER_USERNAME`  | `opencode`               | Basic-auth username for upstream                    |
-| `OPENCODE_SERVER_PASSWORD`  | _empty_                  | Basic-auth password (auth skipped when empty)       |
-| `OPENCODE_PROVIDER_ID`      | `github-copilot`         | Default provider when the client sends a bare model |
-| `DEFAULT_MODEL`             | `gpt-4o`                 | Default model                                       |
-| `OPENCODE_PROXY_API_KEY`    | _empty_                  | Bearer key required from clients (auth disabled when empty) |
-| `TIMEOUT_MS`                | `600000`                 | Upstream request timeout                            |
-| `HEARTBEAT_MS`              | `15000`                  | SSE keepalive interval                              |
-| `RETRY_COUNT`               | `2`                      | Polly retry count                                   |
-| `RETRY_DELAY_MS`            | `2000`                   | Polly base delay                                    |
-| `SESSION_TTL_HOURS`         | `2`                      | Age at which orphaned sessions are reaped           |
-| `CLEANUP_INTERVAL_MS`       | `3600000`                | Reaper interval                                     |
-| `IDEMPOTENCY_TTL_HOURS`     | `24`                     | Idempotency cache TTL                               |
-| `LOG_LEVEL`                 | `Information`            | Min log level                                       |
-| `DEVCONTAINER`              | _unset_                  | If `true`, also write JSON logs to `/tmp/console-dev.log` |
+Naming scheme:
+
+- `OPENCODE_OAI_*` — bridge-side settings (this service's own config)
+- `OPENCODE_*`     — upstream connection settings (talking to the OpenCode server)
+
+### Bridge settings
+
+| Env                                | Default          | Purpose                                                     |
+| ---------------------------------- | ---------------- | ----------------------------------------------------------- |
+| `OPENCODE_OAI_PORT`                | `5000`           | Kestrel bind port                                           |
+| `OPENCODE_OAI_API_KEY`             | _empty_          | Bearer key required from clients (auth disabled when empty) |
+| `OPENCODE_OAI_DEFAULT_PROVIDER`    | `github-copilot` | Default provider when the client sends a bare model         |
+| `OPENCODE_OAI_DEFAULT_MODEL`       | `gpt-4o`         | Default model                                               |
+| `OPENCODE_OAI_HEARTBEAT_MS`        | `15000`          | SSE keepalive interval                                      |
+| `OPENCODE_OAI_SESSION_TTL_HOURS`   | `2`              | Age at which orphaned sessions are reaped                   |
+| `OPENCODE_OAI_CLEANUP_INTERVAL_MS` | `3600000`        | Reaper interval                                             |
+| `OPENCODE_OAI_IDEMPOTENCY_TTL_HOURS` | `24`           | Idempotency cache TTL                                       |
+| `OPENCODE_OAI_LOG_LEVEL`           | `Information`    | Min log level                                               |
+| `OPENCODE_OAI_DEVCONTAINER`        | _unset_          | If `true`, also write JSON logs to `/tmp/console-dev.log`   |
+
+### Upstream OpenCode settings
+
+| Env                       | Default                  | Purpose                                       |
+| ------------------------- | ------------------------ | --------------------------------------------- |
+| `OPENCODE_URL`            | `http://localhost:4096`  | Upstream OpenCode server                      |
+| `OPENCODE_USERNAME`       | `opencode`               | Basic-auth username                           |
+| `OPENCODE_PASSWORD`       | _empty_                  | Basic-auth password (auth skipped when empty) |
+| `OPENCODE_TIMEOUT_MS`     | `600000`                 | Upstream request timeout                      |
+| `OPENCODE_RETRY_COUNT`    | `2`                      | Polly retry count                             |
+| `OPENCODE_RETRY_DELAY_MS` | `2000`                   | Polly base delay                              |
 
 ## Example: non-streaming
 
 ```sh
 curl http://localhost:5000/v1/chat/completions \
-  -H "Authorization: Bearer $OPENCODE_PROXY_API_KEY" \
+  -H "Authorization: Bearer $OPENCODE_OAI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "github-copilot/gpt-4o",
@@ -93,7 +105,7 @@ curl http://localhost:5000/v1/chat/completions \
 
 ```sh
 curl -N http://localhost:5000/v1/chat/completions \
-  -H "Authorization: Bearer $OPENCODE_PROXY_API_KEY" \
+  -H "Authorization: Bearer $OPENCODE_OAI_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "model": "github-copilot/gpt-4o",

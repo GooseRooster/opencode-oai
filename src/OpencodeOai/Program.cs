@@ -55,6 +55,12 @@ builder.Services.AddAuthorization(o =>
 
 var app = builder.Build();
 
+var startupLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+if (string.IsNullOrEmpty(bridge.ApiKey))
+{
+    startupLogger.LogWarning("OPENCODE_OAI_API_KEY is not set; the bridge is accepting anonymous requests");
+}
+
 app.Use(async (ctx, next) =>
 {
     await next();
