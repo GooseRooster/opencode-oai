@@ -9,6 +9,7 @@ internal static class EndpointRegistry
     [
         new HealthEndpoint(),
         new ModelsEndpoint(),
+        new ChatCompletionsEndpoint(),
     ];
 
     public static void MapAll(IEndpointRouteBuilder app)

@@ -7,6 +7,11 @@ using OpencodeOai.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
 
+builder.Services.ConfigureHttpJsonOptions(o =>
+{
+    o.SerializerOptions.TypeInfoResolverChain.Insert(0, OpencodeOai.Openai.OpenaiJsonContext.Default);
+});
+
 EnvConfiguration.Apply(builder.Configuration);
 
 builder.Services
