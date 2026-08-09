@@ -1,0 +1,8 @@
+# Nested gitignore — scoped to .devcontainer/, so the template stays self-contained
+# (devcontainer-init just copies .devcontainer/; nothing to touch at the repo root).
+
+# Per-developer personalization — never shared.
+/local/
+
+# Exported dev HTTPS certificate (per-developer, host-trusted) — never shared.
+/.certs/
