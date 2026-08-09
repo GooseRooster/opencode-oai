@@ -1,5 +1,6 @@
 using OpencodeOai;
 using OpencodeOai.Configuration;
+using OpencodeOai.Endpoints;
 using OpencodeOai.Options;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -23,6 +24,6 @@ builder.Services.AddOpenCodeClient();
 
 var app = builder.Build();
 
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
+EndpointRegistry.MapAll(app);
 
 app.Run();
