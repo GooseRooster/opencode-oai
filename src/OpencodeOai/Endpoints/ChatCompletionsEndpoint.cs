@@ -68,6 +68,11 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
 
             return Results.Json(BuildResponse(result), OpenaiJsonContext.Default.ChatCompletionResponse);
         }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            logger.LogDebug("client cancelled after {Ms}ms", (DateTimeOffset.UtcNow - start).TotalMilliseconds);
+            return Results.StatusCode(StatusCodes.Status499ClientClosedRequest);
+        }
         catch (ArgumentException ex)
         {
             return Results.Json(
@@ -83,7 +88,7 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
                 OpenaiJsonContext.Default.ErrorResponse,
                 statusCode: StatusCodes.Status502BadGateway);
         }
-        catch (Exception ex) when (ex is not OperationCanceledException)
+        catch (Exception ex)
         {
             logger.LogError(ex, "bridge failure");
             return Results.Json(
@@ -106,10 +111,16 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
         var heartbeat = sse.StartHeartbeat(ct);
         ChatCompletionResult? result = null;
         Exception? failure = null;
+        var start = DateTimeOffset.UtcNow;
+        var cancelled = false;
 
         try
         {
             result = await invoke(ct);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            cancelled = true;
         }
         catch (Exception ex)
         {
@@ -120,11 +131,21 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
             heartbeat.Cancel();
         }
 
+        if (cancelled)
+        {
+            logger.LogDebug("client cancelled streaming after {Ms}ms", (DateTimeOffset.UtcNow - start).TotalMilliseconds);
+            return;
+        }
+
         if (failure is not null)
         {
             logger.LogError(failure, "bridge streaming failure");
-            await sse.WriteErrorAsync(failure.Message, ct);
-            await sse.WriteDoneAsync(ct);
+            try
+            {
+                await sse.WriteErrorAsync(failure.Message, ct);
+                await sse.WriteDoneAsync(ct);
+            }
+            catch (OperationCanceledException) { }
             return;
         }
 
