@@ -23,6 +23,7 @@ var bridge = builder.Configuration.GetSection(BridgeOptions.SectionName).Get<Bri
 builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 
 builder.Services.AddOpenCodeClient();
+builder.Services.AddSingleton<OpencodeOai.Bridge.IChatCompletionService, OpencodeOai.Bridge.ChatCompletionService>();
 
 builder.Services
     .AddAuthentication(ApiKeyAuthHandler.SchemeName)

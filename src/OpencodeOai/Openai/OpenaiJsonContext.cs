@@ -5,6 +5,9 @@ namespace OpencodeOai.Openai;
 [JsonSourceGenerationOptions(DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(ModelList))]
 [JsonSerializable(typeof(ErrorResponse))]
+[JsonSerializable(typeof(ChatCompletionRequest))]
+[JsonSerializable(typeof(ChatCompletionResponse))]
+[JsonSerializable(typeof(ChatChunk))]
 internal partial class OpenaiJsonContext : JsonSerializerContext
 {
 }
