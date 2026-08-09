@@ -34,17 +34,23 @@ This project is AI-assisted. All contributions are owned by maintainers.
 docker compose up --build
 ```
 
-The bridge listens on `http://localhost:5000`. It reaches OpenCode on the host
-via `host.docker.internal:4096` (mapped through `host-gateway`).
+The bridge listens on `http://localhost:5000` and reaches OpenCode at
+`http://localhost:4096`. The compose file uses `network_mode: host` so the
+container shares the host's network namespace — that's the reliable way to
+reach an OpenCode server that's bound to the host's loopback (`127.0.0.1`).
+Works with both Docker and Podman on Linux.
+
+If your OpenCode server is bound to all interfaces (`0.0.0.0`) you can drop
+`network_mode: host`, re-add a `ports:` mapping, and point `OPENCODE_URL` at
+`http://host.docker.internal:4096` with an `extra_hosts` gateway alias.
 
 ### docker run
 
 ```sh
 docker build -t opencode-oai .
-docker run --rm -p 5000:5000 \
-  -e OPENCODE_URL=http://host.docker.internal:4096 \
+docker run --rm --network=host \
+  -e OPENCODE_URL=http://localhost:4096 \
   -e OPENCODE_OAI_API_KEY=change-me \
-  --add-host=host.docker.internal:host-gateway \
   opencode-oai
 ```
 

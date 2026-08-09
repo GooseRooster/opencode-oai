@@ -96,6 +96,13 @@ docker compose up --build
   per-token streaming via OpenCode's `/event` endpoint is a future opt-in mode.
 - **Fire-and-forget session delete.** The `SessionCleanupService` exists as a
   backstop; do not synchronise on the per-request delete.
+- **`network_mode: host` in docker-compose.yml.** This is deliberate. OpenCode
+  is typically bound to the host's loopback (`127.0.0.1:4096`); reaching it
+  from a bridged container via `host.docker.internal` / `host-gateway` fails
+  with `Connection refused` because packets arrive on the host's external
+  interface, not its loopback. Sharing the host network namespace is the
+  cleanest fix for a dev-only sidecar. Don't switch to bridge networking
+  without also documenting the OpenCode `--host 0.0.0.0` rebind requirement.
 
 ## Env vars
 
