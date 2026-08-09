@@ -106,3 +106,7 @@ Two prefixes, hard rule — no legacy aliases, no fallbacks:
 
 All env → config mapping lives in `Configuration/EnvConfiguration.cs`. Add new
 vars there and mirror them in the README table.
+
+For local `dotnet run`, `src/OpencodeOai/appsettings.Development.json` is
+git-ignored; copy from the `.example` sibling and edit. Env vars win over
+`appsettings.Development.json`.

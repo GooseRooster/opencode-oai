@@ -39,6 +39,9 @@ ScaffoldingReadMe.txt
 # dotenv environment variables file
 .env
 
+# Local dev overrides — checked-in as .example, ignored otherwise
+src/OpencodeOai/appsettings.Development.json
+
 # Others
 ~$*
 *~

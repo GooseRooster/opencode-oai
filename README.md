@@ -51,8 +51,13 @@ docker run --rm -p 5000:5000 \
 ### dotnet run (development)
 
 ```sh
+cp src/OpencodeOai/appsettings.Development.json.example \
+   src/OpencodeOai/appsettings.Development.json
+# tweak values as needed; the file is git-ignored
 dotnet run --project src/OpencodeOai
 ```
+
+Env vars still win over `appsettings.Development.json` when both are set.
 
 ## Configuration
 

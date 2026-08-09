@@ -1,0 +1,27 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "Bridge": {
+    "Port": 5000,
+    "DefaultModel": "gpt-4o",
+    "DefaultProviderId": "github-copilot",
+    "ApiKey": null,
+    "HeartbeatMs": 15000,
+    "SessionTtlHours": 2,
+    "CleanupIntervalMs": 3600000,
+    "IdempotencyTtlHours": 24,
+    "DevContainer": false
+  },
+  "OpenCode": {
+    "Url": "http://localhost:4096",
+    "Username": "opencode",
+    "Password": null,
+    "TimeoutMs": 600000,
+    "RetryCount": 2,
+    "RetryDelayMs": 2000
+  }
+}
