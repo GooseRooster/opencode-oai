@@ -29,6 +29,7 @@ builder.WebHost.UseUrls($"http://0.0.0.0:{bridge.Port}");
 
 builder.Services.AddOpenCodeClient();
 builder.Services.AddSingleton<OpencodeOai.Bridge.IChatCompletionService, OpencodeOai.Bridge.ChatCompletionService>();
+builder.Services.AddSingleton<OpencodeOai.Bridge.IIdempotencyStore, OpencodeOai.Bridge.MemoryIdempotencyStore>();
 
 builder.Services
     .AddAuthentication(ApiKeyAuthHandler.SchemeName)

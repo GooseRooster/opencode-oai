@@ -21,6 +21,7 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
         HttpContext ctx,
         [FromBody] ChatCompletionRequest? body,
         IChatCompletionService service,
+        IIdempotencyStore idempotency,
         IOptions<BridgeOptions> bridgeOpts,
         ILoggerFactory loggerFactory,
         CancellationToken ct)
@@ -35,25 +36,33 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
                 statusCode: StatusCodes.Status400BadRequest);
         }
 
+        Func<CancellationToken, Task<ChatCompletionResult>> invoke = c => service.CompleteAsync(body, c);
+
+        if (ctx.Request.Headers.TryGetValue("Idempotency-Key", out var idKey) && !string.IsNullOrEmpty(idKey))
+        {
+            var authKey = ctx.Request.Headers.Authorization.ToString();
+            var key = $"{authKey}::{idKey}";
+            invoke = c => idempotency.GetOrAddAsync(key, t => service.CompleteAsync(body, t), c);
+        }
+
         if (body.Stream)
         {
-            await HandleStreamingAsync(ctx, body, service, bridgeOpts.Value, logger, ct);
+            await HandleStreamingAsync(ctx, invoke, bridgeOpts.Value, logger, ct);
             return Results.Empty;
         }
 
-        return await HandleBufferedAsync(body, service, logger, ct);
+        return await HandleBufferedAsync(invoke, logger, ct);
     }
 
     private static async Task<IResult> HandleBufferedAsync(
-        ChatCompletionRequest body,
-        IChatCompletionService service,
+        Func<CancellationToken, Task<ChatCompletionResult>> invoke,
         ILogger logger,
         CancellationToken ct)
     {
         var start = DateTimeOffset.UtcNow;
         try
         {
-            var result = await service.CompleteAsync(body, ct);
+            var result = await invoke(ct);
             logger.LogInformation("chat completion ok in {Ms}ms tokens={Tokens} chars={Chars}",
                 (DateTimeOffset.UtcNow - start).TotalMilliseconds, result.TotalTokens, result.Text.Length);
 
@@ -86,8 +95,7 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
 
     private static async Task HandleStreamingAsync(
         HttpContext ctx,
-        ChatCompletionRequest body,
-        IChatCompletionService service,
+        Func<CancellationToken, Task<ChatCompletionResult>> invoke,
         BridgeOptions bridge,
         ILogger logger,
         CancellationToken ct)
@@ -101,7 +109,7 @@ internal sealed class ChatCompletionsEndpoint : IEndpoint
 
         try
         {
-            result = await service.CompleteAsync(body, ct);
+            result = await invoke(ct);
         }
         catch (Exception ex)
         {
