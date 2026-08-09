@@ -8,7 +8,35 @@
       "launchUrl": "health",
       "applicationUrl": "http://localhost:5000",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OPENCODE_OAI_PORT": "5000",
+        "OPENCODE_URL": "http://localhost:4096"
+      }
+    },
+    "http-authed": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "launchUrl": "health",
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OPENCODE_OAI_PORT": "5000",
+        "OPENCODE_OAI_API_KEY": "dev-key",
+        "OPENCODE_URL": "http://localhost:4096"
+      }
+    },
+    "http-devcontainer": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": false,
+      "launchUrl": "health",
+      "applicationUrl": "http://localhost:5000",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "OPENCODE_OAI_PORT": "5000",
+        "OPENCODE_OAI_DEVCONTAINER": "true",
+        "OPENCODE_URL": "http://localhost:4096"
       }
     }
   }

@@ -2,10 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
-# Manifests first for better layer caching
-COPY opencode-oai.slnx ./
+# Native AOT prerequisites: clang, zlib
+# https://learn.microsoft.com/dotnet/core/deploying/native-aot/#prerequisites
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends clang zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Manifest first for better layer caching
 COPY src/OpencodeOai/OpencodeOai.csproj src/OpencodeOai/
-COPY tests/OpencodeOai.Tests/OpencodeOai.Tests.csproj tests/OpencodeOai.Tests/
 RUN dotnet restore src/OpencodeOai/OpencodeOai.csproj -r linux-x64
 
 # Sources
@@ -18,23 +22,16 @@ RUN dotnet publish src/OpencodeOai/OpencodeOai.csproj \
     -o /app
 
 # ── Runtime stage ─────────────────────────────────────────────────────────────
-# AOT publish emits a self-contained native binary; use a slim base.
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0 AS runtime
+# Chiseled Ubuntu base: tiny, no shell, non-root `app` user pre-baked.
+FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-noble-chiseled-extra AS runtime
 WORKDIR /app
 
-RUN adduser --disabled-password --gecos '' --uid 10001 bridge \
-    && apt-get update && apt-get install -y --no-install-recommends wget \
-    && rm -rf /var/lib/apt/lists/*
+COPY --from=build --chown=app:app /app /app
+USER app
 
-COPY --from=build --chown=bridge:bridge /app /app
-USER bridge
-
-ENV PORT=5000 \
+ENV OPENCODE_OAI_PORT=5000 \
     ASPNETCORE_URLS=http://0.0.0.0:5000
 
 EXPOSE 5000
-
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget -qO- http://localhost:5000/health || exit 1
 
 ENTRYPOINT ["/app/OpencodeOai"]

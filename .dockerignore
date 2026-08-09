@@ -7,3 +7,5 @@ tests/
 *.md
 Dockerfile
 docker-compose.yml
+src/OpencodeOai/appsettings.Development.json
+src/OpencodeOai/appsettings.Development.json.example

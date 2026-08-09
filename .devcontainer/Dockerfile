@@ -3,8 +3,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0
 
 # openssh-client: ssh + ssh-keyscan for agent-forwarded git.
+# clang + zlib1g-dev: Native AOT prerequisites (matches the runtime image build).
+#   https://learn.microsoft.com/dotnet/core/deploying/native-aot/#prerequisites
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssh-client \
+  && apt-get install -y --no-install-recommends \
+       openssh-client \
+       clang \
+       zlib1g-dev \
   && rm -rf /var/lib/apt/lists/*
 
 # Baseline SSH host keys so agent-forwarded git verifies these hosts with no
