@@ -8,6 +8,7 @@ internal static class EndpointRegistry
     private static readonly IEndpoint[] Endpoints =
     [
         new HealthEndpoint(),
+        new ModelsEndpoint(),
     ];
 
     public static void MapAll(IEndpointRouteBuilder app)
