@@ -23,7 +23,9 @@ This project is AI-assisted. All contributions are owned by maintainers.
 - `Idempotency-Key` support with in-flight coalescing.
 - Polly-backed resilience (retry + timeout + circuit breaker) on the upstream client.
 - Fire-and-forget session delete after each request plus a periodic reaper backstop.
-- Structured JSON logs to stdout; optional `/tmp/console-dev.log` mirror when `DEVCONTAINER=true`.
+- Structured JSON logs to stdout with per-request lines; opt-in prompt/completion
+  previews. Optional `/tmp/console-dev.log` mirror when `DEVCONTAINER=true`.
+- Podman Quadlet unit for running the bridge as a systemd service.
 - Native AOT publish → small self-contained container image.
 
 ## Quick start
@@ -53,6 +55,52 @@ docker run --rm --network=host \
   -e OPENCODE_OAI_API_KEY=change-me \
   opencode-oai
 ```
+
+### podman quadlet (systemd service)
+
+The intended way to leave the bridge running on a workstation. Quadlet turns a
+`.container` file into a systemd service, so the bridge starts with your
+session, restarts on failure, and logs to the journal — and your API keys live
+in a `600` env file outside the repo rather than in a compose file.
+
+Templates: [`deploy/quadlet/opencode-oai.container`](deploy/quadlet/opencode-oai.container)
+and [`deploy/quadlet/opencode-oai.env.example`](deploy/quadlet/opencode-oai.env.example).
+Requires podman ≥ 4.6.
+
+```sh
+# 1. Build the image locally (the unit references localhost/opencode-oai:latest)
+podman build -t localhost/opencode-oai:latest .
+
+# 2. Install the unit and its environment file
+install -Dm644 deploy/quadlet/opencode-oai.container \
+  ~/.config/containers/systemd/opencode-oai.container
+install -Dm600 deploy/quadlet/opencode-oai.env.example \
+  ~/.config/opencode-oai/opencode-oai.env
+
+# 3. Set OPENCODE_OAI_API_KEY and anything else you need
+$EDITOR ~/.config/opencode-oai/opencode-oai.env
+
+# 4. Generate the service and start it
+systemctl --user daemon-reload
+systemctl --user start opencode-oai
+```
+
+```sh
+systemctl --user status opencode-oai
+journalctl --user -u opencode-oai -f      # structured JSON logs
+systemctl --user restart opencode-oai     # after an image rebuild
+```
+
+There is no `enable` step — Quadlet-generated units are transient, and the
+unit's `WantedBy=default.target` makes it start at login. To keep it running
+while you're logged out: `loginctl enable-linger $USER`.
+
+For a system-wide install, drop the same file in `/etc/containers/systemd/`,
+put the env file at `/root/.config/opencode-oai/opencode-oai.env` (`%h` resolves
+to `/root`), and use `systemctl` without `--user`.
+
+The unit uses `Network=host` for the same reason compose does, and runs the
+container read-only, with `no-new-privileges` and all capabilities dropped.
 
 ### dotnet run (development)
 
@@ -87,6 +135,8 @@ Naming scheme:
 | `OPENCODE_OAI_CLEANUP_INTERVAL_MS` | `3600000`        | Reaper interval                                             |
 | `OPENCODE_OAI_IDEMPOTENCY_TTL_HOURS` | `24`           | Idempotency cache TTL                                       |
 | `OPENCODE_OAI_LOG_LEVEL`           | `Information`    | Min log level                                               |
+| `OPENCODE_OAI_LOG_PROMPTS`         | `false`          | If `true`, log prompt + completion content, not just metadata |
+| `OPENCODE_OAI_LOG_PREVIEW_CHARS`   | `500`            | Per-preview character cap (`0` = unbounded)                 |
 | `OPENCODE_OAI_DEVCONTAINER`        | _unset_          | If `true`, also write JSON logs to `/tmp/console-dev.log`   |
 
 ### Upstream OpenCode settings
@@ -99,6 +149,44 @@ Naming scheme:
 | `OPENCODE_TIMEOUT_MS`     | `600000`                 | Upstream request timeout                      |
 | `OPENCODE_RETRY_COUNT`    | `2`                      | Polly retry count                             |
 | `OPENCODE_RETRY_DELAY_MS` | `2000`                   | Polly base delay                              |
+
+## Logging
+
+Logs are structured JSON on stdout — the journal under systemd, `podman logs`
+otherwise. ASP.NET Core's own request logging is turned down to `Warning`, so
+the per-request narrative comes from the bridge itself. Every completion emits
+two `Information` lines, correlated by the ASP.NET request id (`{RequestId}`):
+
+```text
+chat request 0HNNNFS2VNUMO:00000001 model=github-copilot/gpt-4o messages=2 stream=False
+chat completion ok 0HNNNFS2VNUMO:00000001 model=github-copilot/gpt-4o stream=False in 8807ms tokens=in:72 out:19 total:8426 chars=33
+```
+
+(Message text only — each line is wrapped in the JSON envelope with timestamp,
+level, category and the named fields broken out for querying.)
+
+`total` is OpenCode's own figure and counts cache and reasoning tokens, so it
+will not generally equal `in + out`.
+
+Client disconnects — routine when an editor cancels an inline completion — log
+at `Debug`, so they stay out of the way at the default level. Upstream and
+bridge failures log at `Error` with the same request id.
+
+Set `OPENCODE_OAI_LOG_PROMPTS=true` to also log content:
+
+```text
+chat prompt 0HNNNFS2VNUMO:00000001 system: You are a code completion engine. Reply with code only. | user: Complete: for (var i = 0; i <
+chat output 0HNNNFS2VNUMO:00000001 `for (var i = 0; i < n; i++) { }`
+```
+
+Previews are collapsed onto one line and capped at `OPENCODE_OAI_LOG_PREVIEW_CHARS`
+(default 500), with the withheld character count appended. Image parts are
+elided as `<image>` rather than dumping base64 data URIs. Reasoning output, when
+the model produces any, gets its own `chat reasoning` line.
+
+This is off by default on purpose: prompts carry whatever source code the editor
+decided to send, and inline completion sends a lot of it. Turn it on to debug a
+plugin, not as a standing default.
 
 ## Example: non-streaming
 

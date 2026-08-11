@@ -14,4 +14,13 @@ public sealed class BridgeOptions
     public int CleanupIntervalMs { get; set; } = 3_600_000;
     public int IdempotencyTtlHours { get; set; } = 24;
     public bool DevContainer { get; set; }
+
+    /// <summary>
+    /// Log prompt and completion *content*, not just metadata. Off by default —
+    /// prompts routinely carry user source code.
+    /// </summary>
+    public bool LogPrompts { get; set; }
+
+    /// <summary>Character cap applied to each logged prompt/completion preview. 0 = unbounded.</summary>
+    public int LogPreviewChars { get; set; } = 500;
 }

@@ -17,7 +17,9 @@
     "SessionTtlHours": 2,
     "CleanupIntervalMs": 3600000,
     "IdempotencyTtlHours": 24,
-    "DevContainer": false
+    "DevContainer": false,
+    "LogPrompts": true,
+    "LogPreviewChars": 500
   },
   "OpenCode": {
     "Url": "http://localhost:4096",

@@ -26,6 +26,8 @@ internal static class EnvConfiguration
         Map(env, overrides, $"{BridgeOptions.SectionName}:CleanupIntervalMs",   "OPENCODE_OAI_CLEANUP_INTERVAL_MS");
         Map(env, overrides, $"{BridgeOptions.SectionName}:IdempotencyTtlHours", "OPENCODE_OAI_IDEMPOTENCY_TTL_HOURS");
         MapBool(env, overrides, $"{BridgeOptions.SectionName}:DevContainer",    "OPENCODE_OAI_DEVCONTAINER");
+        MapBool(env, overrides, $"{BridgeOptions.SectionName}:LogPrompts",      "OPENCODE_OAI_LOG_PROMPTS");
+        Map(env, overrides, $"{BridgeOptions.SectionName}:LogPreviewChars",     "OPENCODE_OAI_LOG_PREVIEW_CHARS");
 
         // Log level feeds Microsoft.Extensions.Logging directly.
         Map(env, overrides, "Logging:LogLevel:Default",                         "OPENCODE_OAI_LOG_LEVEL");

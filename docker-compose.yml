@@ -19,5 +19,10 @@ services:
       OPENCODE_OAI_DEFAULT_MODEL: "gpt-4o"
       # Set to require an API key on incoming requests.
       # OPENCODE_OAI_API_KEY: "change-me"
+
+      # ── Logging ─────────────────────────────────────────────────────────────
       OPENCODE_OAI_LOG_LEVEL: "Information"
+      # Also log prompt/completion *content*, not just per-request metadata.
+      # OPENCODE_OAI_LOG_PROMPTS: "true"
+      # OPENCODE_OAI_LOG_PREVIEW_CHARS: "500"
     restart: unless-stopped

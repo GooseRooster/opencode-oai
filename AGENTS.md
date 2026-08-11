@@ -15,6 +15,7 @@ in this repository. Human contributors will also benefit from skimming it.
   - `tests/OpencodeOai.Tests/` — xUnit + FluentAssertions + Moq
   - `opencode-oai.slnx` — solution
   - `Dockerfile`, `docker-compose.yml` — the intended deployment target
+  - `deploy/quadlet/` — Podman Quadlet unit + env template (systemd service)
 
 ## Golden rules
 
@@ -103,6 +104,20 @@ docker compose up --build
   interface, not its loopback. Sharing the host network namespace is the
   cleanest fix for a dev-only sidecar. Don't switch to bridge networking
   without also documenting the OpenCode `--host 0.0.0.0` rebind requirement.
+
+## Logging
+
+- Every `/v1/chat/completions` call emits a `chat request` line on entry and a
+  `chat completion ok` line on success, both at `Information` and both carrying
+  `ctx.TraceIdentifier` as the correlating `{RequestId}`. Keep that pair intact
+  — it's the only per-request narrative, since `Microsoft.AspNetCore` is turned
+  down to `Warning`.
+- Prompt and completion **content** is gated behind `OPENCODE_OAI_LOG_PROMPTS`
+  and always goes through `Logging/LogPreview.cs`, which collapses to one line,
+  caps length, and elides images. Never log raw message content directly —
+  base64 data URIs will flood the journal.
+- Client disconnects log at `Debug`, not `Warning`. Editors cancel inline
+  completions constantly; that is not an error condition.
 
 ## Env vars
 

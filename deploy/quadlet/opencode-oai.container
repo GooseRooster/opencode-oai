@@ -1,0 +1,54 @@
+# opencode-oai — Podman Quadlet unit
+#
+# Quadlet turns this file into a systemd service at daemon-reload time. See the
+# "Podman quadlet" section of the README for the full walkthrough; the short
+# version, rootless:
+#
+#   podman build -t localhost/opencode-oai:latest .
+#   install -Dm644 deploy/quadlet/opencode-oai.container ~/.config/containers/systemd/opencode-oai.container
+#   install -Dm600 deploy/quadlet/opencode-oai.env.example ~/.config/opencode-oai/opencode-oai.env
+#   $EDITOR ~/.config/opencode-oai/opencode-oai.env     # API keys live here, not in this file
+#   systemctl --user daemon-reload
+#   systemctl --user start opencode-oai
+#
+# Requires podman >= 4.6 (systemd specifier expansion, e.g. %h).
+
+[Unit]
+Description=opencode-oai — OpenAI-compatible bridge for a local OpenCode server
+Documentation=https://github.com/GooseRooster/opencode-oai
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+ContainerName=opencode-oai
+Image=localhost/opencode-oai:latest
+
+# Share the host's network namespace. OpenCode is normally bound to the host's
+# loopback (127.0.0.1:4096), which a bridged container cannot reach — packets
+# would arrive on the host's external interface instead. Under host networking
+# PublishPort= is ignored; the bridge binds OPENCODE_OAI_PORT on the host.
+Network=host
+
+# Secrets and per-host settings live outside the repo so this unit stays
+# committable. %h is the invoking user's home; for a root/system install
+# (/etc/containers/systemd/) that resolves to /root.
+EnvironmentFile=%h/.config/opencode-oai/opencode-oai.env
+
+# Hardening. The bridge writes nothing to disk — logs go to stdout, which
+# systemd captures into the journal. Podman mounts /tmp, /run and /var/tmp as
+# tmpfs even under ReadOnly, so the runtime still has scratch space.
+ReadOnly=true
+NoNewPrivileges=true
+DropCapability=ALL
+
+# No HealthCmd: the runtime image is chiseled (no shell, no curl), so an
+# in-container probe has nothing to run. Poll /health from outside instead.
+
+[Service]
+Restart=always
+RestartSec=5
+# AOT startup is fast; a slow start means the image is missing or broken.
+TimeoutStartSec=60
+
+[Install]
+WantedBy=default.target
